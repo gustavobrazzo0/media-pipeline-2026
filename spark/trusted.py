@@ -5,7 +5,7 @@ from pyspark.sql.types import StringType, DoubleType, LongType
 '''
 trusted.py: RAW -> TRUSTED
 harmoniza 5 plataformas de mídia paga num schema único.
-KPIs (CTR, CPM, pacing) ficam no dbt, não aqui.
+KPIs (CTR, CPM, pacing) ficam no dbt.
 '''
 
 GCP_PROJECT     = "project-089d84bf-7d31-497c-b0a"
