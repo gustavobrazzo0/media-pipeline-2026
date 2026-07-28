@@ -25,14 +25,14 @@ xl = pd.ExcelFile(ARQUIVO)
 
 for aba, nome_csv in ABAS.items():
     if aba not in xl.sheet_names:
-        print(f"aba '{aba}' não encontrada, pulando")
+        print(f"aba '{aba}' nao encontrada, pulando")
         continue
 
     df_raw     = pd.read_excel(ARQUIVO, sheet_name=aba, header=None, engine="openpyxl")
     header_row = detectar_header(df_raw)
 
     if header_row is None:
-        print(f"aba '{aba}': cabeçalho não encontrado")
+        print(f"aba '{aba}' - cabecalho nao encontrado")
         continue
 
     df = (
@@ -45,5 +45,5 @@ for aba, nome_csv in ABAS.items():
 
     caminho = os.path.join(PASTA, nome_csv)
     df.to_csv(caminho, index=False, encoding="utf-8")
-    print(f"{aba} salvo em {caminho} ({len(df)} linhas, {len(df.columns)} colunas)")
+    print(f"✓ {aba} → {caminho} ({len(df)} linhas, {len(df.columns)} colunas)")
     print(f"  colunas: {list(df.columns)}")

@@ -47,6 +47,9 @@ CAMPANHAS = {
         {"nome": "dv360_awareness_cacaushow_2026",    "fase": "awareness",    "marca": "cacaushow"},
         {"nome": "dv360_awareness_kopenhagen_2026",   "fase": "awareness",    "marca": "kopenhagen"},
         {"nome": "dv_awareness_Harald_2026",          "fase": "awareness",    "marca": "harald"},
+        # operador entrou nome da campanha PMAX por engano no DV360
+        # entity resolution vai mapear pmx_awareness_cacaushow_2026 -> id-2026000001 (mesmo que pmax)
+        {"nome": "pmx_awareness_cacaushow_2026",      "fase": "awareness",    "marca": "cacaushow"},
     ],
 }
 
@@ -70,6 +73,9 @@ TAXONOMY_IDS = {
     "cnversion_purchase_cacaushow_2026":    "id-2026000020",
     "conversion_purchase_kopenhagen_2026":  "id-2026000021",
     "dv360_awareness_cacaushow_2026":       "id-2026000022",
+    # pmx_awareness_cacaushow_2026 é o mesmo que pmax_awareness_cacaushow_2026
+    # operador DV360 entrou o nome errado; entity resolution resolve aqui
+    "pmx_awareness_cacaushow_2026":         "id-2026000001",
     "dv360_awareness_kopenhagen_2026":      "id-2026000023",
     "dv_awareness_Harald_2026":             "id-2026000024",
 }
@@ -125,7 +131,6 @@ def gerar_google_pmax():
                     "nome_grupo_assets": grupo,
                     "id_campanha":       cid,
                     "id_grupo_assets":   random.randint(1000000000, 9999999999),
-                    "id_taxonomy":       TAXONOMY_IDS.get(nome, "id-sem-mapeamento"),
                     "custo":             custo,
                     "impressoes":        imp,
                     "cliques":           cliques(imp, 0.018),
@@ -138,11 +143,11 @@ def gerar_google_ads():
     datas  = list(dias_do_ano())
     linhas = []
 
-    # search: intenção alta → CTR 5.8%, sem vídeo. youtube: branding → CPM alto, views.
+    # search: intenção alta -> CTR 5.8%, sem vídeo. youtube: branding -> CPM alto, views.
     config = {
-        "search_brand_cacaushow_2026":     ("ag_search_brand",    "Chocolate premium, conheça",     "search"),
-        "srch_brand_kopenhagen_2026":      ("ag_search_brand",    "Kopenhagen, presente perfeito",  "search"),
-        "search_brand_Harald_2026":        ("ag_search_brand",    "Harald, qualidade profissional", "search"),
+        "search_brand_cacaushow_2026":     ("ag_search_brand",    "Chocolate premium - conheça",     "search"),
+        "srch_brand_kopenhagen_2026":      ("ag_search_brand",    "Kopenhagen: presente perfeito",  "search"),
+        "search_brand_Harald_2026":        ("ag_search_brand",    "Harald: qualidade profissional", "search"),
         "search_generic_chocolates_2026":  ("ag_search_genericos","Compare chocolates e economize",  "search"),
         "youtube_awareness_cacaushow_2026":("ag_youtube_topo",    "Descubra o sabor Cacau Show",     "youtube"),
     }
@@ -177,7 +182,6 @@ def gerar_google_ads():
                 "nome_grupo_anuncio":     ag,
                 "titulo":                 headline,
                 "id_campanha":            cid,
-                "id_taxonomy":            TAXONOMY_IDS.get(nome, "id-sem-mapeamento"),
                 "termo_utm":              nome.replace("_2026", "").replace("_", "-"),
                 "url_destino":            f"https://exemplo.com/lp/{nome.split('_')[0]}",
                 "custo":                  custo,
@@ -208,7 +212,6 @@ def gerar_google_shopping():
                 "data":          dia.strftime("%Y-%m-%d"),
                 "nome_campanha": nome,
                 "id_campanha":   cid,
-                "id_taxonomy":   TAXONOMY_IDS.get(nome, "id-sem-mapeamento"),
                 "custo":         custo,
                 "impressoes":    imp,
                 "cliques":       cliques(imp, 0.072),
@@ -263,7 +266,6 @@ def gerar_meta_ads():
                 "nome_campanha":      nome,
                 "nome_anuncio":       ad_nome,
                 "id_campanha":        cid,
-                "id_taxonomy":        TAXONOMY_IDS.get(nome, "id-sem-mapeamento"),
                 "link_post":          f"https://facebook.com/promo/{nome}",
                 "custo":              custo,
                 "impressoes":         imp,
@@ -306,7 +308,6 @@ def gerar_dv360():
                     "line_item":       li,
                     "criativo":        criativo,
                     "id_campanha":     cid,
-                    "id_taxonomy":     TAXONOMY_IDS.get(nome, "id-sem-mapeamento"),
                     "investimento":    inv,
                     "impressoes":      imp,
                     "views_100pct":    int(imp * taxa_view * random.uniform(0.88, 1.05)),
@@ -329,3 +330,13 @@ if __name__ == "__main__":
         df = fn()
         df.to_csv(f"data/{nome}.csv", index=False)
         print(f"{nome}: {len(df):,} linhas")
+
+    # gera o arquivo de mapeamento para entity resolution no PySpark
+    import os, csv
+    os.makedirs("config", exist_ok=True)
+    with open("config/taxonomy_mapping.csv", "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["campaign_name_raw", "taxonomy_id"])
+        for nome, tid in TAXONOMY_IDS.items():
+            writer.writerow([nome, tid])
+    print(f"taxonomy_mapping.csv: {len(TAXONOMY_IDS)} entradas")

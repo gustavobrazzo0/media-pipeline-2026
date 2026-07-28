@@ -5,12 +5,13 @@ from pyspark.sql.types import StringType, DoubleType, LongType
 '''
 trusted.py: RAW -> TRUSTED
 harmoniza 5 plataformas de mídia paga num schema único.
-KPIs (CTR, CPM, pacing) ficam no dbt, não aqui.
+KPIs (CTR, CPM, pacing) ficam no dbt, nao aqui.
 '''
 
 GCP_PROJECT     = "project-089d84bf-7d31-497c-b0a"
 DATASET_RAW     = "raw"
 DATASET_TRUSTED = "trusted"
+BUCKET          = "media-pipeline-2026-project-089d84bf-7d31-497c-b0a"
 
 TABELA_SAIDA        = f"{GCP_PROJECT}.{DATASET_TRUSTED}.campaigns_unified"
 TABELA_QUARENTENA   = f"{GCP_PROJECT}.{DATASET_TRUSTED}.quarantine_invalid_campaigns"
@@ -41,7 +42,6 @@ def normalizar_pmax(spark):
         .withColumnRenamed("nome_campanha",     "campaign_name_raw")
         .withColumnRenamed("nome_grupo_assets", "ad_group_name")
         .withColumnRenamed("id_campanha",       "campaign_id")
-        .withColumnRenamed("id_taxonomy",       "taxonomy_id")
         .withColumnRenamed("custo",             "spend")
         .withColumnRenamed("impressoes",        "impressions")
         .withColumnRenamed("cliques",           "clicks")
@@ -54,7 +54,7 @@ def normalizar_pmax(spark):
         .withColumn("reach",       F.lit(None).cast(LongType()))
         .withColumn("conversions", F.lit(None).cast(LongType()))
         .select("date", "platform", "campaign_name_raw", "campaign_id",
-                "taxonomy_id", "ad_group_name",
+                "ad_group_name",
                 "spend", "impressions", "clicks", "views", "reach", "conversions")
     )
 
@@ -66,7 +66,6 @@ def normalizar_google_ads(spark):
         .withColumnRenamed("nome_campanha",      "campaign_name_raw")
         .withColumnRenamed("nome_grupo_anuncio", "ad_group_name")
         .withColumnRenamed("id_campanha",        "campaign_id")
-        .withColumnRenamed("id_taxonomy",        "taxonomy_id")
         .withColumnRenamed("custo",              "spend")
         .withColumnRenamed("impressoes",         "impressions")
         .withColumnRenamed("cliques",            "clicks")
@@ -76,7 +75,7 @@ def normalizar_google_ads(spark):
         .withColumn("spend",       F.col("spend").cast(DoubleType()))
         .withColumn("impressions", F.col("impressions").cast(LongType()))
         .withColumn("clicks",      F.col("clicks").cast(LongType()))
-        # search retorna views=0, mas ausência de vídeo não é zero, é null
+        # search retorna views=0, mas ausencia de video nao e zero: e null
         .withColumn("views",
             F.when(F.col("views") == 0, F.lit(None))
              .otherwise(F.col("views").cast(LongType()))
@@ -84,7 +83,7 @@ def normalizar_google_ads(spark):
         .withColumn("reach",       F.lit(None).cast(LongType()))
         .withColumn("conversions", F.lit(None).cast(LongType()))
         .select("date", "platform", "campaign_name_raw", "campaign_id",
-                "taxonomy_id", "ad_group_name",
+                "ad_group_name",
                 "spend", "impressions", "clicks", "views", "reach", "conversions")
     )
 
@@ -95,7 +94,6 @@ def normalizar_shopping(spark):
         df
         .withColumnRenamed("nome_campanha", "campaign_name_raw")
         .withColumnRenamed("id_campanha",   "campaign_id")
-        .withColumnRenamed("id_taxonomy",   "taxonomy_id")
         .withColumnRenamed("custo",         "spend")
         .withColumnRenamed("impressoes",    "impressions")
         .withColumnRenamed("cliques",       "clicks")
@@ -109,7 +107,7 @@ def normalizar_shopping(spark):
         .withColumn("reach",         F.lit(None).cast(LongType()))
         .withColumn("conversions",   F.lit(None).cast(LongType()))
         .select("date", "platform", "campaign_name_raw", "campaign_id",
-                "taxonomy_id", "ad_group_name",
+                "ad_group_name",
                 "spend", "impressions", "clicks", "views", "reach", "conversions")
     )
 
@@ -121,7 +119,6 @@ def normalizar_meta(spark):
         .withColumnRenamed("nome_campanha",      "campaign_name_raw")
         .withColumnRenamed("nome_anuncio",       "ad_group_name")
         .withColumnRenamed("id_campanha",        "campaign_id")
-        .withColumnRenamed("id_taxonomy",        "taxonomy_id")
         .withColumnRenamed("custo",              "spend")
         .withColumnRenamed("impressoes",         "impressions")
         .withColumnRenamed("cliques_link",       "clicks")  # Meta usa cliques_link
@@ -136,7 +133,7 @@ def normalizar_meta(spark):
         .withColumn("reach",       F.col("reach").cast(LongType()))
         .withColumn("conversions", F.lit(None).cast(LongType()))
         .select("date", "platform", "campaign_name_raw", "campaign_id",
-                "taxonomy_id", "ad_group_name",
+                "ad_group_name",
                 "spend", "impressions", "clicks", "views", "reach", "conversions")
     )
 
@@ -150,7 +147,6 @@ def normalizar_dv360(spark):
         .withColumnRenamed("insertion_order", "campaign_name_raw")
         .withColumnRenamed("line_item",       "ad_group_name")
         .withColumnRenamed("id_campanha",     "campaign_id")
-        .withColumnRenamed("id_taxonomy",     "taxonomy_id")
         .withColumnRenamed("investimento",    "spend")
         .withColumnRenamed("impressoes",      "impressions")
         .withColumnRenamed("views_100pct",    "views")
@@ -164,16 +160,23 @@ def normalizar_dv360(spark):
         .withColumn("reach",       F.col("reach").cast(LongType()))
         .withColumn("conversions", F.lit(None).cast(LongType()))
         .select("date", "platform", "campaign_name_raw", "campaign_id",
-                "taxonomy_id", "ad_group_name",
+                "ad_group_name",
                 "spend", "impressions", "clicks", "views", "reach", "conversions")
     )
 
 
 def validar_e_separar(df):
-    '''Separa registros estruturalmente inválidos. Retorna (df_ok, df_invalido).'''
+    '''Separa registros estruturalmente inválidos. Retorna (df_ok, df_invalido).
+
+    ATENÇÃO: clicks pode ser NULL (DV360 compra por CPM, sem cliques).
+    NULL > x avalia como NULL em SQL/Spark: nem True nem False.
+    filter(NULL) descarta a linha; filter(~NULL) também descarta.
+    A linha some sem ir para nenhum lado.
+    Solução: só aplicar a comparação quando clicks não é NULL.
+    '''
     cond_invalido = (
         (F.col("spend") < 0) |
-        (F.col("clicks") > F.col("impressions")) |
+        (F.col("clicks").isNotNull() & (F.col("clicks") > F.col("impressions"))) |
         F.col("campaign_id").isNull()
     )
 
@@ -207,6 +210,22 @@ def main():
 
     df = df.dropDuplicates(["date", "platform", "campaign_id", "ad_group_name"])
 
+    # entity resolution: mapeia campaign_name_raw -> taxonomy_id canônico
+    # o CSV contém também typos que apontam para o mesmo id de suas versões corretas
+    # ex: pmx_awareness_cacaushow_2026 -> id-2026000001 (igual ao pmax_ correto)
+    taxonomy_map = (
+        spark.read
+        .option("header", "true")
+        .csv(f"gs://{BUCKET}/config/taxonomy_mapping.csv")
+    )
+    df = (
+        df.join(taxonomy_map, on="campaign_name_raw", how="left")
+        .withColumn("taxonomy_id",
+            F.when(F.col("taxonomy_id").isNull(), F.lit("id-sem-mapeamento"))
+             .otherwise(F.col("taxonomy_id"))
+        )
+    )
+
     df_ok, df_invalido = validar_e_separar(df)
 
     sem_tax = df_ok.filter(F.col("taxonomy_id") == "id-sem-mapeamento")
@@ -217,7 +236,14 @@ def main():
     n_sem_tax = sem_tax.count()
     n_ok      = df_ok.count()
 
-    print(f"total: {total:,} | inválidos: {n_inv:,} | sem taxonomy: {n_sem_tax:,} | ok: {n_ok:,}")
+    # toda linha que entrou precisa sair em algum destino
+    assert total == n_ok + n_inv + n_sem_tax, (
+        f"linhas perdidas: total={total:,}, ok={n_ok:,}, "
+        f"inv={n_inv:,}, sem_tax={n_sem_tax:,}, "
+        f"perdidas={total - n_ok - n_inv - n_sem_tax:,}"
+    )
+
+    print(f"total: {total:,} | ok: {n_ok:,} | inválidos: {n_inv:,} | sem taxonomy: {n_sem_tax:,}")
 
     salvar_bq(df_ok, TABELA_SAIDA)
 
