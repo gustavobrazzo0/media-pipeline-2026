@@ -62,7 +62,7 @@ Campanhas sem mapeamento recebem `id-sem-mapeamento` e vao para quarentena; nunc
 
 ## Data quality: quarentena em vez de drop
 
-Registros invalidos sao isolados com motivo e timestamp. Nunca sao apagados.
+Registros invalidos sao isolados com motivo e timestamp.
 
 | Regra | Motivo |
 |---|---|
@@ -82,7 +82,7 @@ facts/        (table)  fct_campaign_daily / fct_platform_performance
 marts/        (table)  mart_cross_channel / mart_kpi_summary / mart_pacing
 ```
 
-Staging sao views, baratas de recalcular, refletem atualizacoes do TRUSTED automaticamente. Facts e marts sao tables: o Looker Studio consulta a cada clique e precisa retornar em milissegundos.
+Staging sao views, baratas de recalcular, refletem atualizacoes do TRUSTED automaticamente. Facts e marts sao tables: o Looker Studio consulta a cada clique e retorna
 
 ## Semantic layer: 7 KPIs definidos uma vez
 
