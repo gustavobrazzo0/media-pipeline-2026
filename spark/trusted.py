@@ -156,7 +156,13 @@ def normalizar_dv360(spark):
         .withColumn("spend",       F.col("spend").cast(DoubleType()))
         .withColumn("impressions", F.col("impressions").cast(LongType()))
         .withColumn("clicks",      F.lit(None).cast(LongType()))
-        .withColumn("views",       F.col("views").cast(LongType()))
+        # display line items (taxa_view=0) geram views=0 no CSV
+        # 0 views em display significa ausência de vídeo, não zero views reais
+        # mesmo tratamento do Search no Google Ads: 0 -> null
+        .withColumn("views",
+            F.when(F.col("views") == 0, F.lit(None))
+             .otherwise(F.col("views").cast(LongType()))
+        )
         .withColumn("reach",       F.col("reach").cast(LongType()))
         .withColumn("conversions", F.lit(None).cast(LongType()))
         .select("date", "platform", "campaign_name_raw", "campaign_id",
@@ -186,6 +192,7 @@ def validar_e_separar(df):
             F.when(F.col("spend") < 0,                     "spend_negativo")
              .when(F.col("clicks") > F.col("impressions"),  "ctr_impossivel")
              .when(F.col("campaign_id").isNull(),           "campaign_id_nulo")
+             .otherwise(                                    "indefinido")
         )
         .withColumn("flagged_at", F.current_timestamp())
     )
@@ -230,6 +237,12 @@ def main():
 
     sem_tax = df_ok.filter(F.col("taxonomy_id") == "id-sem-mapeamento")
     df_ok   = df_ok.filter(F.col("taxonomy_id") != "id-sem-mapeamento")
+
+    # cache evita reprocessar o DAG a cada .count()
+    df.cache()
+    df_ok.cache()
+    df_invalido.cache()
+    sem_tax.cache()
 
     total     = df.count()
     n_inv     = df_invalido.count()

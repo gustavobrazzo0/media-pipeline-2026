@@ -6,6 +6,7 @@ import datetime
 import requests
 import pandas as pd
 import streamlit as st
+from urllib.parse import urlencode
 from dotenv import load_dotenv
 from google.cloud import bigquery
 
@@ -50,8 +51,7 @@ def url_login(challenge, verifier):
         "access_type":           "offline",
         "prompt":                "consent",
     }
-    query = "&".join(f"{k}={v}" for k, v in params.items())
-    return f"https://accounts.google.com/o/oauth2/v2/auth?{query}"
+    return f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
 
 
 def trocar_code(code, verifier):
@@ -66,6 +66,7 @@ def trocar_code(code, verifier):
             "code_verifier": verifier,
         }
     )
+    resp.raise_for_status()
     return resp.json()
 
 
@@ -74,6 +75,7 @@ def info_usuario(token):
         "https://www.googleapis.com/oauth2/v1/userinfo",
         headers={"Authorization": f"Bearer {token}"}
     )
+    resp.raise_for_status()
     return resp.json()
 
 
@@ -165,7 +167,7 @@ def main():
         st.caption(usuario.get("email", ""))
         st.markdown("---")
         st.caption("camada de destino")
-        st.code(f"{GCP_PROJECT}\n└── {BQ_DATASET} (RAW)")
+        st.code(f"{GCP_PROJECT}\n  {BQ_DATASET} (RAW)")
         st.markdown("---")
         if st.button("sair", use_container_width=True):
             st.session_state.clear()

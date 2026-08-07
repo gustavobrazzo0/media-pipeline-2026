@@ -21,29 +21,40 @@ def detectar_header(df_raw):
     return None
 
 
-xl = pd.ExcelFile(ARQUIVO)
+def main():
+    if not os.path.exists(ARQUIVO):
+        raise FileNotFoundError(
+            f"arquivo nao encontrado: {ARQUIVO}\n"
+            "certifique-se de que o plano de midia esta em data/plano_de_midia_2026.xlsx"
+        )
 
-for aba, nome_csv in ABAS.items():
-    if aba not in xl.sheet_names:
-        print(f"aba '{aba}' nao encontrada, pulando")
-        continue
+    xl = pd.ExcelFile(ARQUIVO)
 
-    df_raw     = pd.read_excel(ARQUIVO, sheet_name=aba, header=None, engine="openpyxl")
-    header_row = detectar_header(df_raw)
+    for aba, nome_csv in ABAS.items():
+        if aba not in xl.sheet_names:
+            print(f"aba '{aba}' nao encontrada, pulando")
+            continue
 
-    if header_row is None:
-        print(f"aba '{aba}' - cabecalho nao encontrado")
-        continue
+        df_raw     = pd.read_excel(ARQUIVO, sheet_name=aba, header=None, engine="openpyxl")
+        header_row = detectar_header(df_raw)
 
-    df = (
-        pd.read_excel(ARQUIVO, sheet_name=aba, header=header_row, engine="openpyxl")
-        .dropna(how="all")
-        .loc[:, lambda x: ~x.columns.str.startswith("Unnamed")]
-        .astype(str)
-        .replace("nan", "")
-    )
+        if header_row is None:
+            print(f"aba '{aba}': cabecalho nao encontrado")
+            continue
 
-    caminho = os.path.join(PASTA, nome_csv)
-    df.to_csv(caminho, index=False, encoding="utf-8")
-    print(f"✓ {aba} → {caminho} ({len(df)} linhas, {len(df.columns)} colunas)")
-    print(f"  colunas: {list(df.columns)}")
+        df = (
+            pd.read_excel(ARQUIVO, sheet_name=aba, header=header_row, engine="openpyxl")
+            .dropna(how="all")
+            .loc[:, lambda x: ~x.columns.str.startswith("Unnamed")]
+            .astype(str)
+            .replace("nan", "")
+        )
+
+        caminho = os.path.join(PASTA, nome_csv)
+        df.to_csv(caminho, index=False, encoding="utf-8")
+        print(f"ok: {aba} -> {caminho} ({len(df)} linhas, {len(df.columns)} colunas)")
+        print(f"  colunas: {list(df.columns)}")
+
+
+if __name__ == "__main__":
+    main()

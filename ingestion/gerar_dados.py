@@ -1,3 +1,5 @@
+import os
+import csv
 import pandas as pd
 import numpy as np
 import random
@@ -121,6 +123,9 @@ def gerar_google_pmax():
         cid    = random.randint(10000000000, 99999999999)
         budget = distribuir_budget(random.uniform(8000, 18000), len(datas))
 
+        # IDs dos asset groups gerados uma vez por grupo, estaveis ao longo do tempo
+        grupo_ids = {g: random.randint(1000000000, 9999999999) for g in grupos}
+
         for i, dia in enumerate(datas):
             for grupo in grupos:
                 custo = round(budget[i] / len(grupos), 2)
@@ -130,7 +135,7 @@ def gerar_google_pmax():
                     "nome_campanha":     nome,
                     "nome_grupo_assets": grupo,
                     "id_campanha":       cid,
-                    "id_grupo_assets":   random.randint(1000000000, 9999999999),
+                    "id_grupo_assets":   grupo_ids[grupo],
                     "custo":             custo,
                     "impressoes":        imp,
                     "cliques":           cliques(imp, 0.018),
@@ -332,7 +337,6 @@ if __name__ == "__main__":
         print(f"{nome}: {len(df):,} linhas")
 
     # gera o arquivo de mapeamento para entity resolution no PySpark
-    import os, csv
     os.makedirs("config", exist_ok=True)
     with open("config/taxonomy_mapping.csv", "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)

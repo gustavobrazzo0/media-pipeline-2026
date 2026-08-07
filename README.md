@@ -15,31 +15,24 @@ Sem resolver esses problemas, CTR médio "cross-canal" é mentira.
 ## A solução: Medallion Architecture
 
 ```
-Fontes (5 plataformas de mídia paga)
-Google PMAX · Google Ads · Google Shopping · Meta Ads · DV360
-        ↓
+Fontes (5 plataformas de midia paga)
+Google PMAX, Google Ads, Google Shopping, Meta Ads, DV360
+
    Streamlit + OAuth 2.0 PKCE
-   Upload autenticado → BigQuery RAW
-        ↓
-┌─────────────────────────────┐
-│       BigQuery RAW          │
-│  fiel à origem, sem toque   │
-└─────────────────────────────┘
-        ↓  PySpark no Dataproc
-┌─────────────────────────────┐
-│      BigQuery TRUSTED       │
-│  schema unificado · 12 cols │
-│  campaigns_unified          │
-└─────────────────────────────┘
-        ↓  dbt Cloud · 14 models
-┌─────────────────────────────┐
-│      BigQuery CURATED       │
-│  staging → dim → fact → mart│
-│  7 KPIs no semantic layer   │
-└─────────────────────────────┘
-        ↓
+   Upload autenticado -> BigQuery RAW
+
+   [RAW] fiel a origem, sem toque
+
+   PySpark no Dataproc
+
+   [TRUSTED] schema unificado, 12 colunas, campaigns_unified
+
+   dbt Cloud, 14 models
+
+   [CURATED] staging -> dim -> fact -> mart, 7 KPIs no semantic layer
+
    Looker Studio
-   Pacing · Performance · Funil
+   Pacing, Performance, Funil
 ```
 
 Cada camada tem um contrato de qualidade distinto. Nenhuma é pulada.
@@ -48,7 +41,7 @@ Cada camada tem um contrato de qualidade distinto. Nenhuma é pulada.
 
 | Ferramenta | Responsabilidade |
 |---|---|
-| Streamlit | Ingestão autenticada → BigQuery RAW |
+| Streamlit | Ingestão autenticada -> BigQuery RAW |
 | PySpark | Schema harmonization, tipagem, deduplicação, quarentena |
 | dbt | KPIs, modelagem dimensional, semantic layer, testes, docs |
 
@@ -59,9 +52,9 @@ O PySpark não sabe o que é CTR. O dbt não sabe o que é um CSV.
 O `taxonomy_id` é o identificador canônico de cada campanha: estável, independente de como ela aparece nas fontes.
 
 ```
-pmax_awareness_cacaushow_2026   →  id-2026000001
-pmx_awareness_cacaushow_2026    →  id-2026000001  (typo)
-PMAX Awareness - Cacau Show     →  id-2026000001  (manual)
+pmax_awareness_cacaushow_2026   ->  id-2026000001
+pmx_awareness_cacaushow_2026    ->  id-2026000001  (typo)
+PMAX Awareness - Cacau Show     ->  id-2026000001  (manual)
 ```
 
 Campanhas sem mapeamento recebem `id-sem-mapeamento` e vão para quarentena. Nunca entram no TRUSTED silenciosamente. O seed `dim_taxonomy_seed.csv` é versionado no Git: quem mudou a classificação, quando e por que: fica no git log.
@@ -112,7 +105,7 @@ Staging são views: baratas de recalcular, refletem atualizações do TRUSTED au
 | Linhas válidas no TRUSTED | 6.935 |
 | Campanhas únicas identificadas | 21 |
 | Entradas na taxonomia | 24 |
-| Período de dados | Jan/26 → Dez/26 (365 dias) |
+| Período de dados | Jan/26 -> Dez/26 (365 dias) |
 | Plataformas unificadas | 5 |
 | Models dbt | 14 |
 | KPIs centralizados | 7 |
@@ -121,16 +114,16 @@ Staging são views: baratas de recalcular, refletem atualizações do TRUSTED au
 
 ```
 media-pipeline-2026/
-├── ingestion/
-│   ├── gerar_dados.py     # gera CSVs com typos intencionais
-│   └── app.py             # Streamlit + OAuth PKCE → BigQuery RAW
-├── spark/
-│   └── trusted.py         # PySpark: RAW → TRUSTED
-├── scripts/
-│   └── limpar_plano.py    # pré-processa Excel do plano de mídia
-├── .env.example
-├── requirements.txt
-└── README.md
+  ingestion/
+    gerar_dados.py     # gera CSVs com typos intencionais
+    app.py             # Streamlit + OAuth PKCE -> BigQuery RAW
+  spark/
+    trusted.py         # PySpark: RAW -> TRUSTED
+  scripts/
+    limpar_plano.py    # pre-processa Excel do plano de midia
+  .env.example
+  requirements.txt
+  README.md
 ```
 
 O código dbt vive no repositório gerenciado pelo dbt Cloud (`curated_media_pipeline0`).
