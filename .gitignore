@@ -1,0 +1,22 @@
+# ambiente
+venv/
+__pycache__/
+*.pyc
+
+# segredos e credenciais
+.env
+*-sa.json
+*.pem
+*.key
+
+# dados (gerados ou privados, não versionar)
+data/
+
+# logs de execução
+log_ingestao_*.txt
+
+# IDE / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
