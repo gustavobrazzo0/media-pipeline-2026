@@ -10,7 +10,7 @@ O que Meta chama de `cliques_link`, Google chama de `clicks`. O que DV360 chama 
 
 Além disso: a mesma campanha aparece como `pmax_awareness_cacaushow_2026` no Google Ads e `pmx_awareness_cacaushow` em outro sistema . O mesmo nome com um typo, tratado como duas campanhas diferentes.
 
-Sem resolver esses problemas, CTR médio "cross-canal" é mentira.
+Sem resolver esses problemas, CTR médio "cross-canal" fica difícil de ser calculado.
 
 ## A solução: Medallion Architecture
 
@@ -45,7 +45,6 @@ Cada camada tem um contrato de qualidade distinto. Nenhuma é pulada.
 | PySpark | Schema harmonization, tipagem, deduplicação, quarentena |
 | dbt | KPIs, modelagem dimensional, semantic layer, testes, docs |
 
-O PySpark não sabe o que é CTR. O dbt não sabe o que é um CSV.
 
 ## Governança: surrogate key como base de auditoria
 
@@ -61,7 +60,7 @@ Campanhas sem mapeamento recebem `id-sem-mapeamento` e vão para quarentena. Nun
 
 ## Data quality: quarentena em vez de drop
 
-Registros inválidos são isolados com motivo e timestamp. Nunca são apagados.
+Registros inválidos são isolados com motivo e timestamp. 
 
 | Regra | Motivo |
 |---|---|
