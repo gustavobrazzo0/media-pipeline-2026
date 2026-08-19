@@ -1,0 +1,20 @@
+version: 2
+
+sources:
+  - name: trusted
+    database: project-089d84bf-7d31-497c-b0a
+    schema: trusted
+    tables:
+      - name: campaigns_unified
+        description: >
+          Tabela harmonizada pelo PySpark. Uma linha por dia por campanha por plataforma
+          por ad group. Schema unificado de 5 plataformas incompativeis.
+
+  - name: raw
+    database: project-089d84bf-7d31-497c-b0a
+    schema: raw
+    tables:
+      - name: plano_de_midia
+        description: >
+          Plano de midia mensal por plataforma. Gerado por limpar_plano.py a partir
+          do Excel do time de midia. Formato wide: uma coluna por plataforma.

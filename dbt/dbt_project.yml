@@ -1,0 +1,33 @@
+name: media_pipeline_2026
+version: '1.0'
+config-version: 2
+
+profile: media_pipeline_2026
+
+model-paths:  ["models"]
+seed-paths:   ["seeds"]
+test-paths:   ["tests"]
+analysis-paths: ["analyses"]
+macro-paths:  ["macros"]
+
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  media_pipeline_2026:
+    staging:
+      +materialized: view
+      +schema: curated
+    dimensions:
+      +materialized: table
+      +schema: curated
+    facts:
+      +materialized: table
+      +schema: curated
+    marts:
+      +materialized: table
+      +schema: curated
+
+seeds:
+  media_pipeline_2026:
+    +schema: curated

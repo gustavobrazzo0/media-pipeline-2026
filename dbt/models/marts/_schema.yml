@@ -1,0 +1,51 @@
+version: 2
+
+models:
+  - name: mart_cross_channel
+    description: >
+      Performance diaria por campanha e plataforma. Grain: dia x plataforma x taxonomy_id.
+      Fonte principal do dashboard de Performance no Looker Studio.
+    columns:
+      - name: taxonomy_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_taxonomy')
+              field: taxonomy_id
+      - name: platform
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['google_pmax','google_ads','google_shopping','meta_ads','dv360']
+      - name: spend
+        tests:
+          - not_null
+
+  - name: mart_kpi_summary
+    description: >
+      KPIs acumulados por campanha com benchmark_variance em relacao a media do canal.
+      Permite identificar campanhas acima e abaixo da media de cada plataforma.
+    columns:
+      - name: taxonomy_id
+        tests:
+          - not_null
+
+  - name: mart_pacing
+    description: >
+      Pacing mensal por plataforma: realizado vs budget do plano de midia.
+      pacing = spend_realizado / budget_mensal. Fonte: plano_de_midia do RAW.
+    columns:
+      - name: platform
+        tests:
+          - not_null
+      - name: mes
+        tests:
+          - not_null
+      - name: pacing
+        tests:
+          - not_null
+
+  - name: mart_dashboard_unified
+    description: >
+      Uniao de mart_cross_channel e mart_kpi_summary. Fonte unica do Looker Studio
+      para que um unico filtro de data controle todos os graficos do dashboard.
